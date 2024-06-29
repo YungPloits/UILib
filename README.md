@@ -85,5 +85,5 @@ mySection:Label("This is a label text")
 # To create a notification:
 
 ```lua
-Library:Notification("Notification Title", "This is the notification info", 5, {"Okay"})
+Library:Notification("Notification Title", "Desc of noti", 2.5)
 ```
