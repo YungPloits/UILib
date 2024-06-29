@@ -34,9 +34,9 @@ end, "This is a button description")
 # To add a toggle switch to the section:
 
 ```lua
-mySection:Toggle("Enable Feature", true, function(state)
+mySection:Toggle("Enable Feature", false, function(state)
     print("Toggle state: ", state)
-end, "This is a toggle description", true)
+end, "This is a toggle description", false)
 ```
 
 
