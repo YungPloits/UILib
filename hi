@@ -86,7 +86,7 @@ function Library.CreateLib(...)
         ["Arguments"] = {
             "XenonV3";
 
-            ["UI"] = game:GetObjects("18262088200")[1];
+            ["UI"] = game:GetObjects("18262518363")[1];
             ["Tabs"] = {};
             ["ToggleKey"] = Enum.KeyCode.RightAlt;
             ["BottomMenuToggleKey"] = Enum.KeyCode.RightControl;
