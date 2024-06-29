@@ -1,0 +1,453 @@
+local Xenon = {Utils={}}
+Xenon.__index = Xenon
+Xenon.Utils.__index = Xenon.Utils
+
+
+--// Shortened functions
+local v3 = Vector3.new
+local cf = CFrame.new
+local hm = hookmetamethod
+local hf = 1
+local newc = newcclosure
+
+--// V3 UI Library
+local Library = loadstring(game:HttpGet("https://xenonhub.fun/xenon_utils/lib.txt"))()
+
+--// Xenon V3 Library ;o
+function Xenon.Utils.MakeUtilController(Settings)
+    local Utils = {
+        Tasks = {};
+        Tweens = {};
+        Services = {};
+        States = {};
+        Ints = {};
+        Strings = {};
+        Tables = {};
+        Settings = Settings or {ConfigName = "/XenonV3_plsdonate/XenonConfig.json"; PluginsFolder = "XenonV3_plsdonate/Plugins"};
+        LogFile = nil;
+    }
+    Utils.Services = setmetatable({}, {__index = function(self, service)
+        if rawget(self, service) then return rawget(self, service) end
+        local GotService = game:GetService(service)
+        self[service] = GotService
+        return self[service]
+    end})
+    return setmetatable(Utils, Xenon.Utils)
+end
+
+function Xenon.Utils:Beautify(String)
+    local Str = String
+    for i = 3, #Str do
+        local Char = Str:sub(i, i)
+        local PrevChar = Str:sub(i-1, i-1)
+        local PrevChar2 = Str:sub(i-2, i-2)
+        if (PrevChar2 == ":" and PrevChar == "[") or (PrevChar2 == '"' and PrevChar == ",") or (PrevChar2 == "[" and PrevChar == "[") then
+            local StrPart1 = Str:sub(1, i-1)
+            local StrPart2 = "    " .. Char .. Str:sub(i+1, #Str)
+            Str = StrPart1 .. StrPart2
+        end
+    end
+    --[[Str = Str:gsub("{", "{\n")
+    Str = Str:gsub("%[", "[\n")
+    Str = Str:gsub("%],", "\n],")
+    Str = Str:gsub(",", ",\n")
+    Str = Str:gsub("}", "\n}")--]]
+    return Str
+end
+
+function Xenon.Utils:Log(Text)
+    if self.LogFile == nil then
+        local num = 0
+        repeat num = num + 1 until isfile("/XenonV3_plsdonate/Logs/XenonV3_ScriptLog_" .. num .. ".txt") == false
+        self.LogFile = "/XenonV3_plsdonate/Logs/XenonV3_ScriptLog_" .. num .. ".txt"
+        writefile(self.LogFile, "")
+    end
+    appendfile(self.LogFile, Text .. "\n")
+end
+
+function Xenon.Utils:GetLogPath()
+    return self.LogFile
+end
+
+function Xenon.Utils:MakeFolder()
+    --if isfolder("XenonV3") == false then 
+        makefolder("XenonV3_plsdonate")
+    --end
+    --if isfolder("/XenonV3/Logs") == false then 
+        makefolder("/XenonV3_plsdonate/Logs")
+    --end
+    --if isfolder("/XenonV3/Plugins") == false then
+        makefolder("/XenonV3_plsdonate/Plugins")
+    --end
+end
+
+function Xenon.Utils:ConvertConfig(Config)
+    local RepTable = Config
+    for i,v in pairs(RepTable) do
+        for ValName, ValueTable in pairs(v) do
+            if ValueTable["Value"] ~= nil then
+                local Val = ValueTable.Value
+                ValueTable["Value"] = nil
+                ValueTable[1] = Val
+            end
+        end
+    end
+    return RepTable
+end
+
+function Xenon.Utils:ReadData()
+    self:MakeFolder()
+    local Data;
+    local Success, Error = pcall(function()
+        Data = self.Services.HttpService:JSONDecode(readfile(self.Settings.ConfigName))
+    end);
+    Data = Data or loadstring(game:HttpGet("https://pastebin.com/raw/icSxjKxC"))()
+    return {
+        Data = Data;
+        Success = Success;
+        Error = Error;
+        LoadData = function()
+            self:AddValues(self:ConvertConfig(Data))
+            self:SaveConfig();
+        end;
+    }
+end
+
+function Xenon.Utils:WriteData(Data)
+    self:MakeFolder()
+    local StringData = self.Services.HttpService:JSONEncode(Data)
+    local Success, Error = pcall(function()
+        writefile(self.Settings.ConfigName, StringData)
+    end)
+    return Success, Error
+end
+
+function Xenon.Utils:DeleteData()
+    if isfile(self.Settings.ConfigName) then
+        delfile(self.Settings.ConfigName)
+    end
+end
+
+function Xenon.Utils:AddValues(Values)
+    for key, value in pairs(Values) do
+        if key:lower() == "int" then
+            for i,v in pairs(Values[key]) do
+                self.Ints[i] = (type(v) == "number" and {["Value"] = v, ["SaveValue"] = false} or type(v) == "table" and {["Value"] = v[1], ["SaveValue"] = v["SaveValue"]})
+            end
+        end
+        if key:lower() == "state" then
+            for i,v in pairs(Values[key]) do
+                self.States[i] = (type(v) == "boolean" and {["Value"] = v, ["SaveValue"] = false} or type(v) == "table" and {["Value"] = v[1], ["SaveValue"] = v["SaveValue"]})
+            end
+        end
+        if key:lower() == "string" then
+            for i,v in pairs(Values[key]) do
+                self.Strings[i] = (type(v) == "string" and {["Value"] = v, ["SaveValue"] = false} or type(v) == "table" and {["Value"] = v[1], ["SaveValue"] = v["SaveValue"]})
+            end
+        end
+        if key:lower() == "table" then
+            for i,v in pairs(Values[key]) do
+                self.Tables[i] = ((v["SaveValue"] and v["SaveValue"] == true) and {["Value"] = v[1], ["SaveValue"] = v["SaveValue"]} or {["Value"] = v, ["SaveValue"] = false})
+            end
+        end
+    end
+end
+
+function Xenon.Utils:GetInt(Value)
+    if self.Ints[Value] then
+        return self.Ints[Value].Value
+    end
+    return
+end
+
+function Xenon.Utils:GetString(Value)
+    if self.Strings[Value] then
+        return self.Strings[Value].Value
+    end
+    return
+end
+
+function Xenon.Utils:GetState(Value)
+    if self.States[Value] then
+        return self.States[Value].Value
+    end
+    return
+end
+
+function Xenon.Utils:GetTable(Value)
+    if self.Tables[Value] then
+        return self.Tables[Value].Value
+    end
+    return {}
+end
+
+function Xenon.Utils:SetInt(Value, NewValue)
+    if self.Ints[Value] then
+        self.Ints[Value].Value = NewValue
+    end
+end
+
+function Xenon.Utils:SetString(Value, NewValue)
+    if self.Strings[Value] then
+        self.Strings[Value].Value = NewValue
+    end
+end
+
+function Xenon.Utils:SetState(Value, NewValue)
+    if self.States[Value] then
+        self.States[Value].Value = NewValue
+    end
+end
+
+function Xenon.Utils:SetTable(Value, NewValue)
+    if self.Tables[Value] then
+        self.Tables[Value].Value = NewValue
+    end
+end
+
+function Xenon.Utils:ChangeTable(Value, TableIndex, NewValue)
+    if self.Tables[Value] then
+        self.Tables[Value].Value[TableIndex] = NewValue
+    end
+end
+
+function Xenon.Utils:InsertTable(Value, InsertedValue)
+    if self.Tables[Value] then
+        table.insert(self.Tables[Value].Value, InsertedValue)
+    end
+end
+
+function Xenon.Utils:RemoveTable(Value, RemovedValue)
+    if self.Tables[Value] then
+        table.remove(self.Tables[Value].Value, table.find(self.Tables[Value].Value, RemovedValue))
+    end
+end
+
+function Xenon.Utils:FindTable(Value, TableIndex)
+    return table.find(self.Tables[Value].Value, TableIndex)
+end
+
+function Xenon.Utils:SaveConfig()
+    local ScrapedTable = {Int={};State={};String={};Table={}}
+    for i,v in pairs(self.Ints) do
+        if v.SaveValue == true then
+            ScrapedTable.Int[i] = v
+        end
+    end
+    for i,v in pairs(self.States) do
+        if v.SaveValue == true then
+            ScrapedTable.State[i] = v
+        end
+    end
+    for i,v in pairs(self.Strings) do
+        if v.SaveValue == true then
+            ScrapedTable.String[i] = v
+        end
+    end
+    for i,v in pairs(self.Tables) do
+        if v.SaveValue == true then
+            ScrapedTable.Table[i] = v
+        end
+    end
+    return self:WriteData(ScrapedTable)
+end
+
+function Xenon.Utils:GetService(Service)
+    return self.Services[Service]
+end
+
+function Xenon.Utils:GetPlayer()
+    return self.Services.Players.LocalPlayer
+end
+
+function Xenon.Utils:GetCharacter()
+    return self:GetPlayer().Character or self:GetPlayer().CharacterAdded:Wait()
+end
+
+function Xenon.Utils:GetHumanoid()
+    local Character = self:GetCharacter()
+    if Character then
+        return Character:FindFirstChildWhichIsA("Humanoid")
+    end
+end
+
+function Xenon.Utils:GetHRP()
+    local Character = self:GetCharacter()
+    if Character then
+        return Character:FindFirstChild("HumanoidRootPart")
+    end
+end
+
+function Xenon.Utils:GetRoot()
+    local Character = self:GetCharacter()
+    if Character then
+        return Character:FindFirstChild("LowerTorso"):FindFirstChild("Root")
+    end
+end
+
+function Xenon.Utils:SendWebhook(webhook, msg, title)
+    local webhookcheck = (identifyexecutor and identifyexecutor() or "Unsupported exploit")
+
+    local url = webhook
+
+    local data;
+    data = {
+        ["embeds"] = {
+            {
+                ["title"] = title,
+                ["description"] = msg,
+                ["type"] = "rich",
+                ["color"] = tonumber(0x7269ff),
+            }
+        }
+    }
+
+    repeat task.wait() until data
+    local newdata = game:GetService("HttpService"):JSONEncode(data)
+
+
+    local headers = {
+        ["Content-Type"] = "application/json"
+    }
+    local request = http_request or request or HttpPost or syn.request or http.request
+    local abcdef = {Url = url, Body = newdata, Method = "POST", Headers = headers}
+    request(abcdef)
+end
+
+local Util = Xenon.Utils.MakeUtilController()
+local XenonConfig = Util:ReadData():LoadData()
+
+
+Util:AddValues{
+    ["Int"] = {
+    };
+    ["State"] = {
+        Whatever = false
+    };
+    ["String"] = {
+  Webhook = ""
+    };
+    ["Table"] = {
+        Booth = {
+            CurrentBooth = "None";
+        }
+    };
+}
+
+--// Preasync
+pcall(function()
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+        game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+    end)
+end)
+
+--// Lib (999)
+local Lib = Library.CreateLib()
+
+--// Tabs (1000 for ctrl + f)
+local Credits = Lib:Tab("Credits", 6026568227)
+local Main = Lib:Tab("Main", 6022668951)
+
+--// Containers
+local Credits1 = Credits:Section("Developers")
+local Webhook = Main:Section("Webhook")
+local Text = Main:Section("Text")
+
+--// Credits1
+Credits1:Label("Enxtity")
+Credits1:Label("Vezigay")
+
+--// Webhook
+Webhook:TextBox("Set Webhook", function(NewText)
+    Util:SetString("Webhook", NewText)
+    Util:SaveConfig()
+end)
+
+--// Main
+Main:TextBox("Text box", function()
+
+end)
+
+Main:Button("Button", function()
+
+end)
+
+Main:Toggle("Toggle", false, function(State)
+    if not State then
+        print("disabled")
+    else
+        print("enabled")
+    end
+end)
+
+
+--// Real API
+local Plugins = listfiles("/XenonV3_plsdonate/Plugins")
+local PluginSections = {}
+
+local CurrentSection = nil
+
+Util:Log("Xenon Debug - Created Plugin Variables")
+getgenv().XenLib = {}
+Util:Log("Xenon Debug - Created Plugin Table")
+getgenv().XenLib.MakeButton = function(Name, Callback, Description)
+    return CurrentSection:Button((Name and Name or "Unamed Button"), (Callback and Callback or function()
+        print("No button callback!")
+    end), (Description and Description or "No button description!"))
+end
+getgenv().XenLib.MakeToggle = function(Name, State, Callback, Description)
+    return CurrentSection:Toggle((Name and Name or "Unamed Toggle"), (State and State or false), (Callback and Callback or function()
+        print("No toggle callback!")
+    end), (Description and Description or "No toggle description!"))
+end
+getgenv().XenLib.MakeSlider = function(Name, Min, Max, Starting, Callback, Precise, Description)
+    return CurrentSection:Slider((Name and Name or "Unamed Slider"), (Min and Min or 0), (Max and Max or 100), (Starting and Starting or 50) (Callback and Callback or function()
+        print("No slider callback!")
+    end), (Description and Description or "No slider description!"))
+end
+getgenv().XenLib.MakeDropdown = function(Name, List, Callback, Description)
+    return CurrentSection:Dropdown((Name and Name or "Unamed Dropdown"), (List and List or {"Remember", "to", "provide", "a", "list!"}) ,(Callback and Callback or function()
+        print("No dropdown callback!")
+    end), (Description and Description or "No dropdown description!"))
+end
+getgenv().XenLib.MakeTextBox = function(Name, Callback, Description)
+    return CurrentSection:TextBox((Name and Name or "Unamed TextBox"), (Callback and Callback or function()
+        print("No textbox callback!")
+    end), (Description and Description or "No dropdown textbox!"))
+end
+getgenv().XenLib.MakeKeybind = function(Name, StartingKey, Callback, Description)
+    return CurrentSection:TextBox((Name and Name or "Unamed TextBox"), (StartingKey and StartingKey or Enum.KeyCode.E), (Callback and Callback or function()
+        print("No keybind callback!")
+    end), (Description and Description or "No keybind keybind!"))
+end
+getgenv().XenLib.MakeLabel = function(Name)
+    return CurrentSection:TextBox((Name and Name or "Unamed Label"))
+end
+
+getgenv().XenLib.Notification = function(Title, Text, Duration, Buttons)
+    if not Buttons then
+        return Library:Notification((Title and Title or "No Title"), (Text and Text or "No Text"), (Duration and Duration or 5))
+    else
+        return Library:Notification((Title and Title or "No Title"), (Text and Text or "No Text"), (Duration and Duration or 5), Buttons)
+    end
+end
+Util:Log("Xenon Debug - Created Plugin Library")
+for i,v in pairs(Plugins) do
+    Util:Log("Loading plugin:", v)
+    local Section = nil
+    if syn then
+        Section = Misc:Section(v:split("\\")[2]:split(".")[1])
+    else
+        Section = Misc:Section(v:split("\\")[3]:split(".")[1])
+    end
+    CurrentSection = Section
+    local S,F = pcall(function()
+        loadstring(readfile(v))()
+    end)
+    if not S then
+        Util:Log("An issue occured with the plugin (" .. v .. "). Xenon caught the error:", F)
+    end
+    Util:Log("Loaded plugin!")
+end
+
+Util:Log("Xenon Debug - Loaded Plugin Library")
