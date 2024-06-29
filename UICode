@@ -88,8 +88,8 @@ function Library.CreateLib(...)
 
             ["UI"] = game:GetObjects("rbxassetid://18263102022")[1];
             ["Tabs"] = {};
-            ["ToggleKey"] = Enum.KeyCode.RightAlt;
-            ["BottomMenuToggleKey"] = Enum.KeyCode.RightControl;
+            ["ToggleKey"] = Enum.KeyCode.LeftControl;
+            ["BottomMenuToggleKey"] = Enum.KeyCode.LeftControl;
             ["State"] = false;
             ["BottomState"] = false;
             ["Debounce"] = false;
