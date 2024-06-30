@@ -1196,6 +1196,11 @@ function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
         local New = SliderTable.Value
         SliderTable.Asset.Slider.Fill:TweenSize(UDim2.new((New - SliderTable.Min)/(SliderTable.Max - SliderTable.Min), 0, 1, 0), "Out", "Sine", 0.1, true)
         SliderTable.Asset.Percentage.Text = tostring(New)
+
+        --[[
+        if bool then
+            pcall(Slider.Callback, New)
+        end--]]
     end
 
     SliderTable.Asset.Name = SliderTable.Name
@@ -1206,36 +1211,31 @@ function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
     local function startDragging(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
             SliderTable.Dragging = true
-            SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 20, 0, 20), "Out", "Quad", 0.1, true)
+            SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 15 + ((SliderTable.Value / SliderTable.Max) * 5), 0, 15 + ((SliderTable.Value / SliderTable.Max) * 5)), "Out", "Quad", 0.1, true)
         end
     end
 
     local function stopDragging(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
             SliderTable.Dragging = false
-            SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 15, 0, 15), "Out", "Quad", 0.1, true)
-        end
-    end
-
-    -- Updated to handle touch input better
-    local function updateSliderPosition(Input)
-        if SliderTable.Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
-            local Bound = SliderTable.Asset.Slider.AbsoluteSize.X
-            local Pos1 = UDim2.new(math.clamp((Input.Position.X - SliderTable.Asset.Slider.AbsolutePosition.X) / Bound, 0, 1), 0, 1, 0)
-            SliderTable.Asset.Slider.Fill:TweenSize(Pos1, "Out", "Sine", 0.1, true)
-            SliderTable.Value = (SliderTable.Precise and RoundNumber((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min), 1) or math.floor((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min)))
-            SliderTable.Asset.Percentage.Text = tostring(SliderTable.Value)
-            SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 20, 0, 20), "Out", "Quad", 0.01, true)
-            pcall(SliderTable.Callback, SliderTable.Value)
+            SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 0, 0, 0), "Out", "Quad", 0.1, true)
         end
     end
 
     SliderTable.Asset.Slider.Fill.Circle.InputBegan:Connect(startDragging)
     SliderTable.Asset.Slider.Fill.Circle.InputEnded:Connect(stopDragging)
-    SliderTable.Asset.Slider.InputBegan:Connect(startDragging)
-    SliderTable.Asset.Slider.InputEnded:Connect(stopDragging)
 
-    UserInputService.InputChanged:Connect(updateSliderPosition)
+    UserInputService.InputChanged:Connect(function(Input)
+        if SliderTable.Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
+            local Bound = SliderTable.Asset.Slider.AbsoluteSize.X
+            local Pos1 = UDim2.new(math.clamp((Input.Position.X - SliderTable.Asset.Slider.Fill.AbsolutePosition.X) / Bound, 0, 1), 0, 1, 0)
+            SliderTable.Asset.Slider.Fill:TweenSize(Pos1, "Out", "Sine", 0.1, true)
+            SliderTable.Value = (SliderTable.Precise and RoundNumber((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min), 1) or math.floor((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min)))
+            SliderTable.Asset.Percentage.Text = tostring(SliderTable.Value)
+            SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 15 + ((SliderTable.Value / SliderTable.Max) * 5), 0, 15 + ((SliderTable.Value / SliderTable.Max) * 5)), "Out", "Quad", 0.01, true)
+            pcall(SliderTable.Callback, SliderTable.Value)
+        end
+    end)
 
     SliderTable.Asset.Info.MouseButton1Down:Connect(function(X, Y)
         Assist({
@@ -1286,6 +1286,103 @@ function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
     return setmetatable(SliderTable, Library)
 end
 
+
+function Library:Label(Text)
+    local LabelTable = Assist({
+        ["Name"] = "MakeTable";
+        ["Arguments"] = {
+            Text;
+
+            ["Tweens"] = {};
+            ["Class"] = "Label";
+            ["Asset"] = Assist({["Name"] = "GetAsset", ["Arguments"] = {"LabelAsset"}}):Clone();
+        };
+    })
+    LabelTable.Update = function(...)
+        LabelTable.Asset.Label.Text = LabelTable.Name
+    end
+
+    table.insert(self.Assets, LabelTable)
+
+    LabelTable.Asset.Visible = true
+    LabelTable.Asset.Parent = self.Section.Holder
+    LabelTable.Update()
+
+    LabelTable.Asset.MouseEnter:Connect(function()
+        for i,v in pairs(LabelTable.Tweens) do
+            v:Cancel()
+        end
+        LabelTable.Tweens = {}
+
+        local Tween = Assist({
+            ["Name"] = "Tween";
+            ["Arguments"] = {
+                LabelTable.Asset.UIStroke,
+                {Color = Color3.fromRGB(65, 86, 97)},
+                0.1
+            }
+        })
+        table.insert(LabelTable.Tweens, Tween)
+    end)
+
+    LabelTable.Asset.MouseLeave:Connect(function()
+        for i,v in pairs(LabelTable.Tweens) do
+            v:Cancel()
+        end
+        LabelTable.Tweens = {}
+
+        local Tween = Assist({
+            ["Name"] = "Tween";
+            ["Arguments"] = {
+                LabelTable.Asset.UIStroke,
+                {Color = Color3.fromRGB(44, 58, 66)},
+                0.1
+            }
+        })
+        table.insert(LabelTable.Tweens, Tween)
+    end)
+
+    return setmetatable(LabelTable, Library)
+end
+
+function Library:UpdateNotifications()
+
+    --// GET RID OF THE LOSER NOTIFICATIONS LOL
+    for i,v in pairs(Library.Notifications) do
+        if (tick()-v.Data.TOC) >= v.Data.Duration then
+            --// Remove
+            --inst, tType, t, yield, pref
+            local Notif = v.Data.Notification
+            Tween(Notif, {Position = u2(1, Notif.Position.X.Offset, Notif.Position.Y.Scale, Notif.Position.Y.Offset)}, 0.55)
+
+            delay(0.55, function()
+        Notif:Destroy()
+      end)
+            table.remove(Library.Notifications, i)
+        end
+    end
+
+  if #Library.Notifications > 1 then
+    table.sort(Library.Notifications, function(a, b)
+      return a.Data.Queue < b.Data.Queue
+    end)
+  end
+
+    for i,v in ipairs(Library.Notifications) do
+        --Let's determine if its a new notification or already tweened
+        local Move_Axis = (0.88 - (0.12 * (i-1)))
+        if v.Data.Notification.Position.X.Scale == 1 then
+            -- New
+            v.Data.Notification.Position = u2(1, v.Data.Notification.Position.X.Offset, Move_Axis, v.Data.Notification.Position.Y.Offset)
+            v.Data.Notification.Visible = true
+
+            Tween(v.Data.Notification, {Position = u2(0.827, v.Data.Notification.Position.X.Offset, Move_Axis, v.Data.Notification.Position.Y.Offset)}, 0.5)
+        else
+            -- Old
+            Tween(v.Data.Notification, {Position = u2(0.827, v.Data.Notification.Position.X.Offset, Move_Axis, v.Data.Notification.Position.Y.Offset)}, 0.5)
+        end
+    end
+end
 
 function Library:Notification(Title, Info, Duration, ButtonOptions)
     if #Library.Notifications >= 5 then
