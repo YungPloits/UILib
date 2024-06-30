@@ -1218,7 +1218,7 @@ function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
     )
     SliderTable.Asset.Slider.Fill.Circle.InputEnded:Connect(
         function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
                 SliderTable.Dragging = false
                 SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 0, 0, 0), "Out", "Quad", 0.1, true);
             end
