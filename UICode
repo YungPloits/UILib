@@ -1217,22 +1217,25 @@ function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
         end
     end
 
-    SliderTable.Asset.Slider.Fill.Circle.InputBegan:Connect(startDragging)
-    SliderTable.Asset.Slider.Fill.Circle.InputEnded:Connect(stopDragging)
-    SliderTable.Asset.Slider.InputBegan:Connect(startDragging)
-    SliderTable.Asset.Slider.InputEnded:Connect(stopDragging)
-
-    UserInputService.InputChanged:Connect(function(Input)
+    -- Updated to handle touch input better
+    local function updateSliderPosition(Input)
         if SliderTable.Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
             local Bound = SliderTable.Asset.Slider.AbsoluteSize.X
-            local Pos1 = UDim2.new(math.clamp((Input.Position.X - SliderTable.Asset.Slider.Fill.AbsolutePosition.X) / Bound, 0, 1), 0, 1, 0)
+            local Pos1 = UDim2.new(math.clamp((Input.Position.X - SliderTable.Asset.Slider.AbsolutePosition.X) / Bound, 0, 1), 0, 1, 0)
             SliderTable.Asset.Slider.Fill:TweenSize(Pos1, "Out", "Sine", 0.1, true)
             SliderTable.Value = (SliderTable.Precise and RoundNumber((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min), 1) or math.floor((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min)))
             SliderTable.Asset.Percentage.Text = tostring(SliderTable.Value)
             SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 20, 0, 20), "Out", "Quad", 0.01, true)
             pcall(SliderTable.Callback, SliderTable.Value)
         end
-    end)
+    end
+
+    SliderTable.Asset.Slider.Fill.Circle.InputBegan:Connect(startDragging)
+    SliderTable.Asset.Slider.Fill.Circle.InputEnded:Connect(stopDragging)
+    SliderTable.Asset.Slider.InputBegan:Connect(startDragging)
+    SliderTable.Asset.Slider.InputEnded:Connect(stopDragging)
+
+    UserInputService.InputChanged:Connect(updateSliderPosition)
 
     SliderTable.Asset.Info.MouseButton1Down:Connect(function(X, Y)
         Assist({
