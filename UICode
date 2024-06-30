@@ -1227,7 +1227,7 @@ function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
 
     UserInputService.InputChanged:Connect(
     function(Input)
-        if SliderTable.Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then
+        if SliderTable.Dragging then
             local Bound = SliderTable.Asset.Slider.AbsoluteSize.X
             local Pos1 =
                 UDim2.new(
