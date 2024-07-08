@@ -1,6 +1,6 @@
 # Getting the ui libary started
 ```lua
-local Library = loadstring(game:HttpGet("[https://raw.githubusercontent.com/YungPloits/UILib/main/hi](https://raw.githubusercontent.com/YungPloits/UILib/main/UICode)"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/YungPloits/UILib/main/UICode"))()
 local Lib = Library.CreateLib() -- this is NEEDED
 ```
 
