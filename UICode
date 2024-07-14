@@ -1171,71 +1171,137 @@ end
 
 
 function Library:Slider(Name, Min, Max, Start, Callback, Precise, Description)
-    local SliderTable = Assist({
-        ["Name"] = "MakeTable";
-        ["Arguments"] = {
-            Name;
+	local SliderTable = Assist({
+		["Name"] = "MakeTable";
+		["Arguments"] = {
+			Name;
 
-            ["Min"] = Min or 0;
-            ["Max"] = Max or 100;
-            ["Value"] = Start or 0;
-            ["Callback"] = Callback or function() end;
-            ["Class"] = "Slider";
-            ["Dragging"] = false;
-            ["Precise"] = Precise or false;
+			["Min"] = Min or 0;
+			["Max"] = Max or 100;
+			["Value"] = Start or 0;
+			["Callback"] = Callback or function() end;
+			["Class"] = "Slider";
+			["Dragging"] = false;
+			["Precise"] = Precise or false;
 
-            ["Tweens"] = {};
-            ["Asset"] = Assist({["Name"] = "GetAsset", ["Arguments"] = {"Slider"}}):Clone();
-            ["Description"] = Description or "The developer has not provided a description for this asset.";
-        };
-    })
-    table.insert(self.Assets, SliderTable.Asset)
+			["Tweens"] = {};
+			["Asset"] = Assist({["Name"] = "GetAsset", ["Arguments"] = {"Slider"}}):Clone();
+			["Description"] = Description or "The developer has not provided a description for this asset.";
+		};
+	})
+	table.insert(self.Assets, SliderTable.Asset)
 
-    SliderTable.Update = function()
-        SliderTable.Asset.Label.Text = SliderTable.Name
-        local New = SliderTable.Value
-        SliderTable.Asset.Slider.Fill:TweenSize(UDim2.new((New - SliderTable.Min) / (SliderTable.Max - SliderTable.Min), 0, 1, 0), "Out", "Sine", 0.1, true)
-        SliderTable.Asset.Percentage.Text = tostring(New)
-    end
+	SliderTable.Update = function(...)
+		SliderTable.Asset.Label.Text = SliderTable.Name
 
-    SliderTable.Asset.Name = SliderTable.Name
-    SliderTable.Asset.Visible = true
-    SliderTable.Asset.Parent = self.Section.Holder
-    SliderTable.Update()
+		local New = SliderTable.Value
+		SliderTable.Asset.Slider.Fill:TweenSize(UDim2.new((New - SliderTable.Min)/(SliderTable.Max - SliderTable.Min), 0, 1, 0), "Out", "Sine", 0.1, true)
+		SliderTable.Asset.Percentage.Text = tostring(New)
 
-    local function updateSlider(input)
-        if SliderTable.Dragging then
-            local Bound = SliderTable.Asset.Slider.AbsoluteSize.X
-            local Pos1 = UDim2.new(math.clamp((input.Position.X - SliderTable.Asset.Slider.Fill.AbsolutePosition.X) / Bound, 0, 1), 0, 1, 0)
-            SliderTable.Asset.Slider.Fill:TweenSize(Pos1, "Out", "Sine", 0.1, true)
-            SliderTable.Value = SliderTable.Precise and RoundNumber((Pos1.X.Scale * (SliderTable.Max - SliderTable.Min) + SliderTable.Min), 1) or math.floor((Pos1.X.Scale * (SliderTable.Max - SliderTable.Min) + SliderTable.Min))
-            SliderTable.Asset.Percentage.Text = tostring(SliderTable.Value)
-            pcall(SliderTable.Callback, SliderTable.Value)
-        end
-    end
+        --[[
+        if bool then
+            pcall(Slider.Callback, New)
+        end--]]
+	end
 
-    local function startDragging(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            SliderTable.Dragging = true
-            updateSlider(input)
-        end
-    end
+	SliderTable.Asset.Name = SliderTable.Name
+	SliderTable.Asset.Visible = true
+	SliderTable.Asset.Parent = self.Section.Holder
+	SliderTable.Update()
 
-    local function stopDragging(input)
-        if SliderTable.Dragging and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            SliderTable.Dragging = false
-        end
-    end
+	SliderTable.Asset.Slider.Fill.Circle.InputBegan:Connect(
+		function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				SliderTable.Dragging = true
+				SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 15 + ((SliderTable.Value / SliderTable.Max) * 5), 0, 15 + ((SliderTable.Value / SliderTable.Max) * 5)), "Out", "Quad", 0.1, true);
+			end
+		end
+	)
+	SliderTable.Asset.Slider.Fill.Circle.InputEnded:Connect(
+		function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+				SliderTable.Dragging = false
+				SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 0, 0, 0), "Out", "Quad", 0.1, true);
+			end
+		end
+	)
+	
+	UserInputService.InputEnded:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.Touch and SliderTable.Dragging then
+			SliderTable.Dragging = false
+			SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 0, 0, 0), "Out", "Quad", 0.1, true);
+		end
+	end)
 
-    SliderTable.Asset.Slider.InputBegan:Connect(startDragging)
-    SliderTable.Asset.Slider.InputEnded:Connect(stopDragging)
-    SliderTable.Asset.Slider.InputChanged:Connect(updateSlider)
+	UserInputService.InputChanged:Connect(
+		function(Input)
+			if SliderTable.Dragging then
+				local Bound = SliderTable.Asset.Slider.AbsoluteSize.X
+				local Pos1 =
+					UDim2.new(
+						math.clamp((Input.Position.X - SliderTable.Asset.Slider.Fill.AbsolutePosition.X) / Bound, 0, 1),
+						0,
+						1,
+						0
+					)
+				SliderTable.Asset.Slider.Fill:TweenSize(Pos1, "Out", "Sine", 0.1, true)
+				SliderTable.Value = (SliderTable.Precise and RoundNumber((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min), 1) or math.floor((((Pos1.X.Scale * SliderTable.Max) / SliderTable.Max) * (SliderTable.Max - SliderTable.Min) + SliderTable.Min)))
+				SliderTable.Asset.Percentage.Text = tostring(SliderTable.Value)
+				SliderTable.Asset.Slider.Fill.CircleEffect:TweenSize(u2(0, 15 + ((SliderTable.Value / SliderTable.Max) * 5), 0, 15 + ((SliderTable.Value / SliderTable.Max) * 5)), "Out", "Quad", 0.01, true);
+				pcall(SliderTable.Callback, SliderTable.Value)
+			end
+		end
+	)
 
-    UserInputService.InputEnded:Connect(stopDragging)  -- Ensure dragging stops on input end
-    UserInputService.InputChanged:Connect(updateSlider)  -- Handle dragging updates
+	SliderTable.Asset.Info.MouseButton1Down:Connect(function(X, Y)
+		Assist({
+			["Name"] = "Tween";
+			["Arguments"] = {
+				self["Self"].UI.Main.Info;
+				{Position = u2(0.5, 0, 0.91, 0)};
+				0.3;
+			}
+		})
+		self["Self"].UI.Main.Info.Label.Text = SliderTable.Description
+	end)
 
-    return setmetatable(SliderTable, Library)
+	SliderTable.Asset.MouseEnter:Connect(function()
+		for i,v in pairs(SliderTable.Tweens) do
+			v:Cancel()
+		end
+		SliderTable.Tweens = {}
+
+		local Tween = Assist({
+			["Name"] = "Tween";
+			["Arguments"] = {
+				SliderTable.Asset.UIStroke,
+				{Color = Color3.fromRGB(65, 86, 97)},
+				0.1
+			}
+		})
+		table.insert(SliderTable.Tweens, Tween)
+	end)
+
+	SliderTable.Asset.MouseLeave:Connect(function()
+		for i,v in pairs(SliderTable.Tweens) do
+			v:Cancel()
+		end
+		SliderTable.Tweens = {}
+
+		local Tween = Assist({
+			["Name"] = "Tween";
+			["Arguments"] = {
+				SliderTable.Asset.UIStroke,
+				{Color = Color3.fromRGB(44, 58, 66)},
+				0.1
+			}
+		})
+		table.insert(SliderTable.Tweens, Tween)
+	end)
+
+	return setmetatable(SliderTable, Library)
 end
+
 
 
 
